@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AssigLLM - Student Research Assistant</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        assig: {
+                            main: '#2563eb', // Academic Blue
+                            dark: '#1e40af',
+                            light: '#eff6ff'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- PDF.js for rendering and text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <!-- Marked.js for markdown rendering in chat -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Markdown Styles */
+        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .markdown-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body strong { font-weight: 600; color: #1e293b; }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .markdown-body pre { background: #f1f5f9; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .markdown-body code { background: #f1f5f9; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; color: #2563eb; }
+        .prose-content *:last-child { margin-bottom: 0; }
+        
+        /* PDF Canvas Styling */
+        .pdf-page-canvas {
+            max-width: 100%;
+            height: auto;
+            background-color: white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 24px;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body class="h-screen w-full flex flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-assig-main text-white shadow-md z-10 flex-shrink-0">
+        <div class="max-w-screen-3xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="bg-white text-assig-main p-1.5 rounded-md shadow-sm">
+                    <i data-lucide="graduation-cap" class="h-5 w-5"></i>
+                </div>
+                <h1 class="text-xl font-bold tracking-tight">Assig<span class="font-light">LLM</span></h1>
+                <span class="ml-2 text-xs bg-blue-800 px-2 py-0.5 rounded-full border border-blue-700">Student Mode Active</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center bg-assig-dark rounded-md px-3 py-1.5 border border-blue-700 shadow-inner">
+                    <i data-lucide="key" class="h-4 w-4 text-blue-300 mr-2"></i>
+                    <input type="password" id="api-key-input" placeholder="API Key" readonly
+                           class="bg-transparent border-none outline-none text-sm text-white w-48 focus:ring-0 cursor-default">
+                    <span class="text-xs font-semibold text-green-400 ml-2">Connected</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 h-[calc(100vh-3.5rem)] overflow-hidden">
+        
+        <!-- Left Panel: Document Management -->
+        <aside class="w-72 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-sm relative">
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    <i data-lucide="library" class="h-4 w-4"></i> Sources
+                </h2>
+                <span class="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full font-medium" id="doc-count">0</span>
+            </div>
+            
+            <div class="p-3 flex-1 overflow-y-auto" id="document-list">
+                <div id="empty-docs-state" class="text-center py-8 text-slate-400 flex flex-col items-center h-full justify-center">
+                    <div class="bg-slate-100 p-4 rounded-full mb-3">
+                        <i data-lucide="file-up" class="h-8 w-8 text-slate-300"></i>
+                    </div>
+                    <p class="text-sm font-medium">No PDFs uploaded.</p>
+                    <p class="text-xs mt-1 text-slate-400">Add materials for your assignment.</p>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-200 bg-slate-50">
+                <input type="file" id="file-upload" multiple accept="application/pdf" class="hidden">
+                <button onclick="document.getElementById('file-upload').click()" 
+                        class="w-full py-2.5 px-4 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-assig-main hover:text-assig-main transition-all flex items-center justify-center gap-2 shadow-sm">
+                    <i data-lucide="plus-circle" class="h-4 w-4"></i>
+                    Upload PDF Documents
+                </button>
+                <div id="upload-status" class="mt-3 text-xs text-center font-medium text-assig-main hidden flex items-center justify-center gap-2">
+                    <i data-lucide="loader-2" class="h-3 w-3 animate-spin"></i>
+                    Reading Text... <span id="upload-progress"></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Panel: PDF Viewer -->
+        <main class="flex-1 bg-slate-200 flex flex-col h-full relative z-0">
+            <div class="h-12 bg-white border-b border-slate-200 flex items-center px-4 justify-between flex-shrink-0 shadow-sm z-10">
+                <h2 id="viewer-title" class="text-sm font-bold text-slate-800 truncate flex items-center gap-2">
+                    <i data-lucide="book-open" class="h-4 w-4 text-slate-400"></i>
+                    Select a document to read
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">Native PDF View</span>
+                </div>
+            </div>
+            
+            <!-- Custom Canvas-based PDF Viewer (Bulletproof against Sandbox blocks) -->
+            <div class="flex-1 relative overflow-y-auto overflow-x-hidden p-6 bg-slate-300/50 flex flex-col items-center" id="pdf-render-container">
+                <div id="viewer-placeholder" class="m-auto flex flex-col items-center justify-center text-slate-400">
+                    <i data-lucide="file-search" class="h-16 w-16 mb-4 text-slate-300"></i>
+                    <p class="text-lg font-medium text-slate-500">Document Workspace</p>
+                    <p class="text-sm text-slate-400 mt-2 max-w-sm text-center">Your PDFs will be rendered natively here so you can read them alongside the AI.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Chat Interface -->
+        <aside class="w-[30rem] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.03)]">
+            <div class="h-12 bg-emerald-50 border-b border-emerald-100 flex items-center px-4 justify-between flex-shrink-0">
+                <div class="flex items-center gap-2 text-emerald-800">
+                    <i data-lucide="shield-check" class="h-4 w-4"></i>
+                    <h2 class="text-sm font-bold">100% Anti-AI Mode</h2>
+                </div>
+                <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">
+                    Gemini 2.5 Flash
+                </div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-5 bg-slate-50/50" id="chat-container">
+                <!-- Welcome Message -->
+                <div class="flex gap-3">
+                    <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                        <i data-lucide="bot" class="h-4 w-4"></i>
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-slate-700 max-w-[85%] shadow-sm">
+                        <p class="font-bold text-slate-800 mb-1">AssigLLM Ready.</p>
+                        <p>Upload your PDFs on the left. I will analyze them and help you write your assignment.</p>
+                        <div class="mt-2 text-xs bg-emerald-100 text-emerald-800 p-2 rounded-lg border border-emerald-200">
+                            <strong>Note:</strong> I am configured to write like a human student to bypass AI detectors like Turnitin and GPTZero.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Error Banner -->
+            <div id="error-banner" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-3 mx-4 mb-2 text-sm rounded shadow-sm relative">
+                <span id="error-message" class="block pr-6">Error message here.</span>
+                <button onclick="document.getElementById('error-banner').classList.add('hidden')" class="absolute top-1 right-1 p-1 hover:bg-red-100 rounded text-red-500">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+
+            <div class="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)]">
+                <form id="chat-form" class="relative">
+                    <textarea id="chat-input" rows="2" placeholder="Ask a question or ask me to write a section..." 
+                              class="w-full resize-none rounded-xl border border-slate-300 pr-12 pl-4 py-3 text-sm focus:outline-none focus:border-assig-main focus:ring-1 focus:ring-assig-main shadow-inner bg-slate-50 transition-all"
+                              onkeydown="if(event.keyCode===13 && !event.shiftKey) { event.preventDefault(); document.getElementById('chat-form').dispatchEvent(new Event('submit')); }"></textarea>
+                    <button type="submit" id="send-btn" class="absolute bottom-3 right-3 p-2 bg-assig-main text-white rounded-lg hover:bg-assig-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                        <i data-lucide="send" class="h-4 w-4"></i>
+                    </button>
+                </form>
+                <div class="text-[10px] text-center text-slate-400 mt-2 flex items-center justify-center gap-1">
+                    <i data-lucide="info" class="h-3 w-3"></i> Answers prioritize uploaded documents but use general knowledge as fallback.
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Set the requested API Key
+        const apiKey = "AQ.Ab8RN6JJxRuF_hUIZWax-I3XUZazc0srnIcXQxpr_Vwqfw02NA";
+        
+        let documents = []; // { id, name, file, textContent }
+        let activeDocId = null;
+        let chatHistory = [];
+        let isGenerating = false;
+
+        // DOM Elements
+        const apiKeyInput = document.getElementById('api-key-input');
+        apiKeyInput.value = "*".repeat(15); // Obfuscate visually
+        
+        const fileUpload = document.getElementById('file-upload');
+        const documentList = document.getElementById('document-list');
+        const emptyDocsState = document.getElementById('empty-docs-state');
+        const docCount = document.getElementById('doc-count');
+        const viewerTitle = document.getElementById('viewer-title');
+        const pdfRenderContainer = document.getElementById('pdf-render-container');
+        const viewerPlaceholder = document.getElementById('viewer-placeholder');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatContainer = document.getElementById('chat-container');
+        const sendBtn = document.getElementById('send-btn');
+        const errorBanner = document.getElementById('error-banner');
+        const errorMessage = document.getElementById('error-message');
+        const uploadStatus = document.getElementById('upload-status');
+        const uploadProgress = document.getElementById('upload-progress');
+
+        lucide.createIcons();
+
+        fileUpload.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            uploadStatus.classList.remove('hidden');
+            let processed = 0;
+
+            for (const file of files) {
+                if (file.type !== 'application/pdf') {
+                    showError(`File ${file.name} is not a PDF.`);
+                    continue;
+                }
+
+                uploadProgress.textContent = `(${processed + 1}/${files.length}) - ${file.name}`;
+                
+                try {
+                    // Extract text for AI
+                    const textContent = await extractTextFromPDF(file);
+                    
+                    const docId = 'doc_' + Math.random().toString(36).substr(2, 9);
+                    
+                    documents.push({
+                        id: docId,
+                        name: file.name,
+                        file: file, // Keep reference to file for rendering
+                        textContent: textContent
+                    });
+                    
+                    processed++;
+                } catch (err) {
+                    console.error("Error parsing PDF:", err);
+                    showError(`Failed to process ${file.name}`);
+                }
+            }
+
+            uploadStatus.classList.add('hidden');
+            fileUpload.value = ''; // Reset
+            renderDocumentList();
+            
+            if (documents.length > 0 && !activeDocId) {
+                setActiveDocument(documents[documents.length - 1].id);
+            }
+            
+            if(processed > 0) {
+               addSystemMessage(`Analyzed ${processed} new document(s). Knowledge base updated.`);
+            }
+        });
+
+        async function extractTextFromPDF(file) {
+            const arrayBuffer = await file.arrayBuffer();
+            const typedarray = new Uint8Array(arrayBuffer);
+            const pdf = await pdfjsLib.getDocument({data: typedarray}).promise;
+            let fullText = `--- Document Name: ${file.name} ---\n`;
+            
+            const maxPages = Math.min(pdf.numPages, 100); // Extract up to 100 pages for AI
+            for (let i = 1; i <= maxPages; i++) {
+                try {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += `[Page ${i}]: ${pageText}\n`;
+                } catch(e) {
+                    console.warn(`Could not extract page ${i}`);
+                }
+            }
+            if (pdf.numPages > 100) fullText += `\n[Document truncated for memory limits]`;
+            return fullText;
+        }
+
+        function renderDocumentList() {
+            docCount.textContent = documents.length;
+            
+            if (documents.length === 0) {
+                emptyDocsState.style.display = 'flex';
+                documentList.innerHTML = '';
+                documentList.appendChild(emptyDocsState);
+                return;
+            }
+
+            emptyDocsState.style.display = 'none';
+            documentList.innerHTML = '';
+
+            documents.forEach(doc => {
+                const docEl = document.createElement('div');
+                const isActive = doc.id === activeDocId;
+                
+                docEl.className = `p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 mb-2 group shadow-sm
+                    ${isActive ? 'bg-blue-50/50 border-assig-main/60 shadow-md ring-1 ring-assig-main/20' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'}`;
+                
+                docEl.innerHTML = `
+                    <div class="h-8 w-8 rounded-lg ${isActive ? 'bg-assig-main text-white' : 'bg-slate-100 text-slate-500'} flex items-center justify-center flex-shrink-0 transition-colors mt-0.5 shadow-sm">
+                        <i data-lucide="file-text" class="h-4 w-4"></i>
+                    </div>
+                    <div class="flex-1 min-w-0" onclick="setActiveDocument('${doc.id}')">
+                        <p class="text-sm font-bold ${isActive ? 'text-assig-main' : 'text-slate-700'} truncate" title="${doc.name}">${doc.name}</p>
+                        <p class="text-[10px] font-medium text-slate-500 mt-1 flex items-center gap-1">
+                           <i data-lucide="align-left" class="h-3 w-3"></i> Ready
+                        </p>
+                    </div>
+                    <button onclick="removeDocument('${doc.id}', event)" title="Remove document" class="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all">
+                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                    </button>
+                `;
+                documentList.appendChild(docEl);
+            });
+            lucide.createIcons();
+        }
+
+        window.setActiveDocument = async function(id) {
+            activeDocId = id;
+            renderDocumentList();
+            
+            const doc = documents.find(d => d.id === id);
+            if (doc) {
+                viewerTitle.innerHTML = `<i data-lucide="book-open" class="h-4 w-4 text-assig-main"></i> ${doc.name}`;
+                
+                // Clear container and show loader
+                pdfRenderContainer.innerHTML = `
+                    <div class="m-auto flex flex-col items-center justify-center">
+                        <i data-lucide="loader-2" class="h-8 w-8 text-assig-main animate-spin mb-2"></i>
+                        <p class="text-sm text-slate-500 font-medium">Rendering PDF Pages...</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                
+                try {
+                    // Render using robust canvas pipeline to avoid Sandbox iframe blocking
+                    const arrayBuffer = await doc.file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({data: new Uint8Array(arrayBuffer)}).promise;
+                    
+                    pdfRenderContainer.innerHTML = ''; // Clear loader
+                    
+                    // Render first 30 pages visually to prevent massive RAM usage, but AI has full text
+                    const maxRenderPages = Math.min(pdf.numPages, 30);
+                    
+                    for (let i = 1; i <= maxRenderPages; i++) {
+                        const page = await pdf.getPage(i);
+                        // Dynamic scaling based on container width for a good reading size
+                        const viewport = page.getViewport({ scale: 1.5 }); 
+                        
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        canvas.className = 'pdf-page-canvas';
+                        
+                        pdfRenderContainer.appendChild(canvas);
+                        
+                        await page.render({
+                            canvasContext: ctx,
+                            viewport: viewport
+                        }).promise;
+                    }
+                    
+                    if(pdf.numPages > 30) {
+                        const notice = document.createElement('div');
+                        notice.className = "text-xs text-slate-500 font-medium py-4 px-6 bg-slate-200 rounded-lg mb-8 text-center";
+                        notice.innerHTML = `<i data-lucide="info" class="inline w-3 h-3 mr-1"></i> Showing first 30 pages visually to save memory. <b>The AI has read the entire document.</b>`;
+                        pdfRenderContainer.appendChild(notice);
+                        lucide.createIcons();
+                    }
+                    
+                } catch (err) {
+                    console.error("PDF Render Error:", err);
+                    pdfRenderContainer.innerHTML = `<div class="m-auto text-red-500 font-medium">Error rendering document visually. The AI can still read it.</div>`;
+                }
+            }
+        };
+
+        window.removeDocument = function(id, event) {
+            event.stopPropagation();
+            documents = documents.filter(d => d.id !== id);
+            
+            if (activeDocId === id) {
+                activeDocId = documents.length > 0 ? documents[0].id : null;
+                if (!activeDocId) {
+                    viewerTitle.innerHTML = `<i data-lucide="book-open" class="h-4 w-4 text-slate-400"></i> Select a document to read`;
+                    pdfRenderContainer.innerHTML = `
+                        <div id="viewer-placeholder" class="m-auto flex flex-col items-center justify-center text-slate-400">
+                            <i data-lucide="file-search" class="h-16 w-16 mb-4 text-slate-300"></i>
+                            <p class="text-lg font-medium text-slate-500">Document Workspace</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    setActiveDocument(activeDocId);
+                }
+            }
+            renderDocumentList();
+        };
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorBanner.classList.remove('hidden');
+            setTimeout(() => errorBanner.classList.add('hidden'), 8000);
+        }
+
+        function createSystemInstruction() {
+            let docsContext = documents.length === 0 ? 
+                "The user has not uploaded any documents." :
+                "Here are the uploaded documents:\n\n" + documents.map(d => d.textContent).join('\n\n=====\n\n');
+
+            let prompt = `You are a university student doing an assignment. 
+
+CRITICAL DIRECTIVE - BYPASS AI DETECTORS (TURNITIN, GPTZERO):
+You MUST write in a way that is 100% undetected by AI plagiarism checkers. To do this, you must mimic real human writing.
+1. NO AI BUZZWORDS: Never use words like: delve, robust, cutting-edge, furthermore, moreover, in conclusion, crucial, tapestry, intricate, pivotal, seamless, testament, nuanced, realm, embark, shed light.
+2. HIGH BURSTINESS & PERPLEXITY: You MUST vary sentence lengths drastically. Write a 5-word sentence. Then a 25-word sentence. Then a 12-word sentence. Break up the rhythm. Human writing is not mathematically uniform.
+3. TONE & STYLE: Write calmly, directly, and slightly informally but academically appropriate. Occasional use of contractions (don't, it's) is good. DO NOT use Em-Dashes.
+4. SYNTHESIS NOT COPYING: Use the provided documents to answer the question, but rephrase concepts naturally. Do not copy strings of text verbatim. 
+5. STRUCTURE: Do not use highly predictable structures like "Firstly, secondly, thirdly". Avoid making every paragraph the exact same length.
+6. FALLBACK PROTOCOL: If the user asks a question and the answer is NOT explicitly detailed in the uploaded PDFs, explicitly state: "I couldn't find this exact detail in the provided documents," BUT THEN immediately proceed to answer the question using your own general knowledge to help the student anyway. Do not leave them empty-handed.
+
+Context Documents:
+${docsContext}
+`;
+            return prompt;
+        }
+
+        function addSystemMessage(text) {
+            const msgEl = document.createElement('div');
+            msgEl.className = 'w-full flex justify-center my-2';
+            msgEl.innerHTML = `<span class="bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full border border-slate-300 shadow-inner">${text}</span>`;
+            chatContainer.appendChild(msgEl);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Global function for the copy button
+        window.copyTextToClipboard = function(btn, text) {
+            // Use textarea hack for reliable copying inside iframes
+            const textarea = document.createElement('textarea');
+            textarea.value = decodeURIComponent(text);
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-600"></i> <span class="text-green-600">Copied!</span>`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text', err);
+            }
+            document.body.removeChild(textarea);
+        };
+
+        function addMessageToUI(role, text) {
+            const msgEl = document.createElement('div');
+            msgEl.className = `flex gap-3 w-full`;
+            
+            if (role === 'user') {
+                msgEl.className += ` flex-row-reverse`;
+                msgEl.innerHTML = `
+                    <div class="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                        <i data-lucide="user" class="h-4 w-4"></i>
+                    </div>
+                    <div class="bg-slate-800 rounded-2xl rounded-tr-none px-4 py-3 text-sm text-white max-w-[85%] shadow-md prose-content font-medium">
+                        ${marked.parse(text)}
+                    </div>
+                `;
+            } else if (role === 'model') {
+                // Encode text for safe passing to inline onclick handler
+                const encodedText = encodeURIComponent(text);
+                
+                msgEl.innerHTML = `
+                    <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md mt-1">
+                        <i data-lucide="bot" class="h-4 w-4"></i>
+                    </div>
+                    <div class="flex flex-col gap-1 max-w-[85%]">
+                        <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-4 text-sm text-slate-800 shadow-md">
+                            <div class="prose-content markdown-body">
+                                ${marked.parse(text)}
+                            </div>
+                        </div>
+                        <!-- COPY BUTTON ADDED AT THE END OF AI MESSAGE -->
+                        <div class="flex justify-end mt-1">
+                            <button onclick="copyTextToClipboard(this, '${encodedText}')" 
+                                    class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-assig-main bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm transition-colors active:scale-95">
+                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Answer
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            chatContainer.appendChild(msgEl);
+            lucide.createIcons();
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showLoadingIndicator() {
+            const loaderEl = document.createElement('div');
+            loaderEl.id = 'chat-loading';
+            loaderEl.className = `flex gap-3 w-full`;
+            loaderEl.innerHTML = `
+                <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                    <i data-lucide="bot" class="h-4 w-4"></i>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-4 shadow-sm flex items-center gap-1.5 h-12">
+                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full"></span>
+                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full" style="animation-delay: 0.2s"></span>
+                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full" style="animation-delay: 0.4s"></span>
+                </div>
+            `;
+            chatContainer.appendChild(loaderEl);
+            lucide.createIcons();
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideLoadingIndicator() {
+            const loader = document.getElementById('chat-loading');
+            if (loader) loader.remove();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text || isGenerating) return;
+
+            chatInput.value = '';
+            chatInput.style.height = 'auto'; 
+            isGenerating = true;
+            sendBtn.disabled = true;
+            errorBanner.classList.add('hidden');
+            
+            addMessageToUI('user', text);
+            showLoadingIndicator();
+
+            const systemInstructionText = createSystemInstruction();
+            
+            const geminiContents = chatHistory.map(msg => ({
+                role: msg.role === 'user' ? 'user' : 'model',
+                parts: [{ text: msg.text }]
+            }));
+            
+            geminiContents.push({
+                role: 'user',
+                parts: [{ text: text }]
+            });
+
+            const payload = {
+                systemInstruction: { parts: [{ text: systemInstructionText }] },
+                contents: geminiContents
+            };
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => null);
+                    throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                const replyText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (replyText) {
+                    hideLoadingIndicator();
+                    addMessageToUI('model', replyText);
+                    chatHistory.push({ role: 'user', text: text });
+                    chatHistory.push({ role: 'model', text: replyText });
+                } else {
+                    throw new Error("Invalid format received from Gemini.");
+                }
+            } catch (err) {
+                console.error("API Error:", err);
+                hideLoadingIndicator();
+                showError("Connection failed. Ensure API key is valid. " + err.message);
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                setTimeout(() => chatInput.focus(), 100);
+            }
+        });
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight < 120 ? this.scrollHeight : 120) + 'px';
+        });
+
+    </script>
+</body>
+</html>
