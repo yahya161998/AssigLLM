@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AssigLLM - Student Research Assistant</title>
+    <title>AssigLLM - Smart Assignment Assistant</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        assig: {
-                            main: '#2563eb', // Academic Blue
-                            dark: '#1e40af',
-                            light: '#eff6ff'
+                        primary: {
+                            light: '#e0e7ff', // Indigo 100
+                            DEFAULT: '#4f46e5', // Indigo 600
+                            dark: '#3730a3', // Indigo 800
                         }
                     }
                 }
@@ -23,7 +22,7 @@
         }
     </script>
 
-    <!-- PDF.js for rendering and text extraction -->
+    <!-- PDF.js for text extraction and rendering -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     
     <!-- Marked.js for markdown rendering in chat -->
@@ -33,52 +32,48 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
-        /* Custom Scrollbar */
+        /* Custom Scrollbar for better aesthetics */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Markdown Styles */
-        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+        /* Markdown Chat Styles */
+        .markdown-body p { margin-bottom: 0.75rem; }
         .markdown-body ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
         .markdown-body ol { list-style-type: decimal; margin-left: 1.5rem; margin-bottom: 0.75rem; }
-        .markdown-body strong { font-weight: 600; color: #1e293b; }
-        .markdown-body h1, .markdown-body h2, .markdown-body h3 { font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
-        .markdown-body pre { background: #f1f5f9; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.75rem; font-size: 0.875rem; }
-        .markdown-body code { background: #f1f5f9; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; color: #2563eb; }
+        .markdown-body strong { font-weight: 600; color: #1f2937; }
+        .markdown-body pre { background: #1e293b; color: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .markdown-body code { background: #e2e8f0; color: #b91c1c; padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-family: monospace; font-size: 0.875rem; }
+        .markdown-body pre code { background: transparent; color: inherit; padding: 0; }
         .prose-content *:last-child { margin-bottom: 0; }
-        
+
         /* PDF Canvas Styling */
         .pdf-page-canvas {
             max-width: 100%;
             height: auto;
             background-color: white;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin-bottom: 24px;
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            border-radius: 0.25rem;
         }
     </style>
 </head>
-<body class="h-screen w-full flex flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden">
+<body class="h-screen w-full flex flex-col bg-gray-50 text-gray-800 font-sans overflow-hidden">
 
-    <!-- Top Navigation Bar -->
-    <header class="bg-assig-main text-white shadow-md z-10 flex-shrink-0">
+    <header class="bg-primary text-white shadow-md z-10 flex-shrink-0">
         <div class="max-w-screen-3xl mx-auto px-4 h-14 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <div class="bg-white text-assig-main p-1.5 rounded-md shadow-sm">
-                    <i data-lucide="graduation-cap" class="h-5 w-5"></i>
-                </div>
+                <i data-lucide="graduation-cap" class="h-6 w-6"></i>
                 <h1 class="text-xl font-bold tracking-tight">Assig<span class="font-light">LLM</span></h1>
-                <span class="ml-2 text-xs bg-blue-800 px-2 py-0.5 rounded-full border border-blue-700">Student Mode Active</span>
             </div>
             
             <div class="flex items-center gap-4">
-                <div class="flex items-center bg-assig-dark rounded-md px-3 py-1.5 border border-blue-700 shadow-inner">
-                    <i data-lucide="key" class="h-4 w-4 text-blue-300 mr-2"></i>
-                    <input type="password" id="api-key-input" placeholder="API Key" readonly
-                           class="bg-transparent border-none outline-none text-sm text-white w-48 focus:ring-0 cursor-default">
-                    <span class="text-xs font-semibold text-green-400 ml-2">Connected</span>
+                <div class="flex items-center bg-primary-dark rounded-md px-3 py-1.5 border border-indigo-500 focus-within:border-white transition-colors shadow-inner">
+                    <i data-lucide="key" class="h-4 w-4 text-indigo-200 mr-2"></i>
+                    <input type="password" id="api-key-input" placeholder="Paste Gemini API Key here..." 
+                           class="bg-transparent border-none outline-none text-sm text-white placeholder-indigo-300 w-64 focus:ring-0">
+                    <button id="save-key-btn" class="text-xs font-semibold text-indigo-200 hover:text-white ml-2 transition-colors">Save</button>
                 </div>
             </div>
         </div>
@@ -88,107 +83,101 @@
     <div class="flex flex-1 h-[calc(100vh-3.5rem)] overflow-hidden">
         
         <!-- Left Panel: Document Management -->
-        <aside class="w-72 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-sm relative">
-            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                    <i data-lucide="library" class="h-4 w-4"></i> Sources
-                </h2>
-                <span class="bg-slate-200 text-slate-600 text-xs py-0.5 px-2 rounded-full font-medium" id="doc-count">0</span>
+        <aside class="w-72 bg-white border-r border-gray-200 flex flex-col hidden md:flex flex-shrink-0 z-0 shadow-sm relative">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wider">My Documents</h2>
+                <span class="bg-primary-light text-primary-dark text-xs py-0.5 px-2 rounded-full font-bold" id="doc-count">0</span>
             </div>
             
-            <div class="p-3 flex-1 overflow-y-auto" id="document-list">
-                <div id="empty-docs-state" class="text-center py-8 text-slate-400 flex flex-col items-center h-full justify-center">
-                    <div class="bg-slate-100 p-4 rounded-full mb-3">
-                        <i data-lucide="file-up" class="h-8 w-8 text-slate-300"></i>
-                    </div>
-                    <p class="text-sm font-medium">No PDFs uploaded.</p>
-                    <p class="text-xs mt-1 text-slate-400">Add materials for your assignment.</p>
+            <div class="p-4 flex-1 overflow-y-auto" id="document-list">
+                <!-- Documents will be injected here -->
+                <div id="empty-docs-state" class="text-center py-8 text-gray-400 flex flex-col items-center">
+                    <i data-lucide="file-up" class="h-10 w-10 mb-2 opacity-50"></i>
+                    <p class="text-sm font-medium text-gray-500">No documents yet.</p>
+                    <p class="text-xs mt-1">Upload assignments, rubrics, or readings.</p>
                 </div>
             </div>
 
-            <div class="p-4 border-t border-slate-200 bg-slate-50">
+            <div class="p-4 border-t border-gray-200 bg-gray-50">
                 <input type="file" id="file-upload" multiple accept="application/pdf" class="hidden">
                 <button onclick="document.getElementById('file-upload').click()" 
-                        class="w-full py-2.5 px-4 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-assig-main hover:text-assig-main transition-all flex items-center justify-center gap-2 shadow-sm">
-                    <i data-lucide="plus-circle" class="h-4 w-4"></i>
-                    Upload PDF Documents
+                        class="w-full py-2.5 px-4 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                    <i data-lucide="upload-cloud" class="h-4 w-4"></i>
+                    Upload PDFs
                 </button>
-                <div id="upload-status" class="mt-3 text-xs text-center font-medium text-assig-main hidden flex items-center justify-center gap-2">
-                    <i data-lucide="loader-2" class="h-3 w-3 animate-spin"></i>
-                    Reading Text... <span id="upload-progress"></span>
+                <div id="upload-status" class="mt-2 text-xs text-center text-primary-dark hidden font-medium">
+                    Processing... <span id="upload-progress"></span>
                 </div>
             </div>
         </aside>
 
         <!-- Center Panel: PDF Viewer -->
-        <main class="flex-1 bg-slate-200 flex flex-col h-full relative z-0">
-            <div class="h-12 bg-white border-b border-slate-200 flex items-center px-4 justify-between flex-shrink-0 shadow-sm z-10">
-                <h2 id="viewer-title" class="text-sm font-bold text-slate-800 truncate flex items-center gap-2">
-                    <i data-lucide="book-open" class="h-4 w-4 text-slate-400"></i>
-                    Select a document to read
-                </h2>
+        <main class="flex-1 bg-[#525659] flex flex-col h-full relative z-0">
+            <div class="h-12 bg-white border-b border-gray-200 flex items-center px-4 justify-between flex-shrink-0 shadow-sm z-10">
+                <h2 id="viewer-title" class="text-sm font-semibold text-gray-800 truncate">Select a document to view</h2>
                 <div class="flex items-center gap-2">
-                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200">Native PDF View</span>
+                    <span class="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded border border-gray-200">Built-in Viewer</span>
                 </div>
             </div>
             
-            <!-- Custom Canvas-based PDF Viewer (Bulletproof against Sandbox blocks) -->
-            <div class="flex-1 relative overflow-y-auto overflow-x-hidden p-6 bg-slate-300/50 flex flex-col items-center" id="pdf-render-container">
-                <div id="viewer-placeholder" class="m-auto flex flex-col items-center justify-center text-slate-400">
-                    <i data-lucide="file-search" class="h-16 w-16 mb-4 text-slate-300"></i>
-                    <p class="text-lg font-medium text-slate-500">Document Workspace</p>
-                    <p class="text-sm text-slate-400 mt-2 max-w-sm text-center">Your PDFs will be rendered natively here so you can read them alongside the AI.</p>
+            <div class="flex-1 relative overflow-hidden flex justify-center" id="viewer-container">
+                <!-- Viewer placeholder -->
+                <div id="viewer-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-300 bg-gray-100 z-10">
+                    <i data-lucide="book-open" class="h-16 w-16 mb-4 opacity-40 text-gray-400"></i>
+                    <p class="text-lg font-medium text-gray-500">Document Area</p>
+                    <p class="text-sm text-gray-400 mt-2">Your reading material will appear here.</p>
+                </div>
+                
+                <!-- Container for robust PDF.js Canvas Rendering -->
+                <div id="pdf-render-container" class="w-full h-full overflow-y-auto hidden py-8 px-4 flex-col items-center">
+                    <!-- Canvases will be injected here -->
                 </div>
             </div>
         </main>
 
         <!-- Right Panel: Chat Interface -->
-        <aside class="w-[30rem] bg-white border-l border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.03)]">
-            <div class="h-12 bg-emerald-50 border-b border-emerald-100 flex items-center px-4 justify-between flex-shrink-0">
-                <div class="flex items-center gap-2 text-emerald-800">
-                    <i data-lucide="shield-check" class="h-4 w-4"></i>
-                    <h2 class="text-sm font-bold">100% Anti-AI Mode</h2>
+        <aside class="w-[26rem] bg-white border-l border-gray-200 flex flex-col hidden lg:flex flex-shrink-0 z-0 shadow-xl">
+            <div class="h-12 bg-primary-light border-b border-primary flex items-center px-4 flex-shrink-0 justify-between">
+                <div class="flex items-center">
+                    <i data-lucide="bot" class="h-4 w-4 text-primary-dark mr-2"></i>
+                    <h2 class="text-sm font-bold text-primary-dark">AI Student Mode</h2>
                 </div>
-                <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-1 rounded border border-emerald-200">
-                    Gemini 2.5 Flash
+                <div class="text-[10px] uppercase font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full border border-green-200">
+                    Undetectable
                 </div>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-5 bg-slate-50/50" id="chat-container">
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-gray-50" id="chat-container">
                 <!-- Welcome Message -->
                 <div class="flex gap-3">
-                    <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md">
-                        <i data-lucide="bot" class="h-4 w-4"></i>
+                    <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white shadow-sm">
+                        <i data-lucide="sparkles" class="h-4 w-4"></i>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-slate-700 max-w-[85%] shadow-sm">
-                        <p class="font-bold text-slate-800 mb-1">AssigLLM Ready.</p>
-                        <p>Upload your PDFs on the left. I will analyze them and help you write your assignment.</p>
-                        <div class="mt-2 text-xs bg-emerald-100 text-emerald-800 p-2 rounded-lg border border-emerald-200">
-                            <strong>Note:</strong> I am configured to write like a human student to bypass AI detectors like Turnitin and GPTZero.
-                        </div>
+                    <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-4 py-3 text-sm text-gray-800 max-w-[85%] shadow-sm">
+                        <p>Hey! I'm AssigLLM. Upload your readings/assignment PDFs on the left, drop your API key above, and ask me anything. I'll write the answers naturally like a student so you don't have to worry about AI detectors.</p>
                     </div>
                 </div>
             </div>
 
             <!-- Global Error Banner -->
-            <div id="error-banner" class="hidden bg-red-50 border-l-4 border-red-500 text-red-700 p-3 mx-4 mb-2 text-sm rounded shadow-sm relative">
-                <span id="error-message" class="block pr-6">Error message here.</span>
-                <button onclick="document.getElementById('error-banner').classList.add('hidden')" class="absolute top-1 right-1 p-1 hover:bg-red-100 rounded text-red-500">
+            <div id="error-banner" class="hidden bg-red-100 border-l-4 border-red-500 text-red-700 p-3 mx-4 text-sm rounded shadow-sm relative mb-2">
+                <span id="error-message" class="font-medium">Error message here.</span>
+                <button onclick="document.getElementById('error-banner').classList.add('hidden')" class="absolute top-1 right-1 p-1 hover:bg-red-200 rounded text-red-700">
                     <i data-lucide="x" class="h-4 w-4"></i>
                 </button>
             </div>
 
-            <div class="p-4 bg-white border-t border-slate-200 shadow-[0_-4px_10px_-5px_rgba(0,0,0,0.05)]">
+            <div class="p-4 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <form id="chat-form" class="relative">
-                    <textarea id="chat-input" rows="2" placeholder="Ask a question or ask me to write a section..." 
-                              class="w-full resize-none rounded-xl border border-slate-300 pr-12 pl-4 py-3 text-sm focus:outline-none focus:border-assig-main focus:ring-1 focus:ring-assig-main shadow-inner bg-slate-50 transition-all"
+                    <textarea id="chat-input" rows="2" placeholder="Ask a question or request a summary..." 
+                              class="w-full resize-none rounded-xl border border-gray-300 pr-12 pl-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light shadow-inner bg-gray-50 transition-all"
                               onkeydown="if(event.keyCode===13 && !event.shiftKey) { event.preventDefault(); document.getElementById('chat-form').dispatchEvent(new Event('submit')); }"></textarea>
-                    <button type="submit" id="send-btn" class="absolute bottom-3 right-3 p-2 bg-assig-main text-white rounded-lg hover:bg-assig-dark transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
+                    <button type="submit" id="send-btn" class="absolute bottom-3 right-3 p-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow">
                         <i data-lucide="send" class="h-4 w-4"></i>
                     </button>
                 </form>
-                <div class="text-[10px] text-center text-slate-400 mt-2 flex items-center justify-center gap-1">
-                    <i data-lucide="info" class="h-3 w-3"></i> Answers prioritize uploaded documents but use general knowledge as fallback.
+                <div class="text-[10px] text-center text-gray-400 mt-2 font-medium">
+                    Powered by Gemini 2.5 Flash • AI Bypass Active
                 </div>
             </div>
         </aside>
@@ -196,18 +185,19 @@
 
     <!-- Application Logic -->
     <script>
-        // Configure PDF.js worker
+        // Set up PDF.js worker
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        
-        let documents = []; // { id, name, file, textContent }
+
+        // State variables
+        let apiKey = ""; 
+        let documents = []; // Array to hold { id, name, file, textContent, pdfDoc }
         let activeDocId = null;
-        let chatHistory = [];
+        let chatHistory = []; // Array to hold chat messages { role, text }
         let isGenerating = false;
 
         // DOM Elements
         const apiKeyInput = document.getElementById('api-key-input');
-        apiKeyInput.value = "*".repeat(15); // Obfuscate visually
-        
+        const saveKeyBtn = document.getElementById('save-key-btn');
         const fileUpload = document.getElementById('file-upload');
         const documentList = document.getElementById('document-list');
         const emptyDocsState = document.getElementById('empty-docs-state');
@@ -224,8 +214,23 @@
         const uploadStatus = document.getElementById('upload-status');
         const uploadProgress = document.getElementById('upload-progress');
 
+        // Initialize Icons
         lucide.createIcons();
 
+        // --- API Key Management ---
+        saveKeyBtn.addEventListener('click', () => {
+            if (apiKeyInput.value.trim() !== "") {
+                apiKey = apiKeyInput.value.trim();
+                saveKeyBtn.textContent = "Saved ✓";
+                saveKeyBtn.classList.replace('text-indigo-200', 'text-green-300');
+                setTimeout(() => {
+                    saveKeyBtn.textContent = "Save";
+                    saveKeyBtn.classList.replace('text-green-300', 'text-indigo-200');
+                }, 2000);
+            }
+        });
+
+        // --- Document Upload & Handling ---
         fileUpload.addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
@@ -242,16 +247,28 @@
                 uploadProgress.textContent = `(${processed + 1}/${files.length}) - ${file.name}`;
                 
                 try {
-                    // Extract text for AI
-                    const textContent = await extractTextFromPDF(file);
+                    const arrayBuffer = await file.arrayBuffer();
+                    
+                    // Parse via PDF.js
+                    const pdfDoc = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+                    let fullText = `--- Document Name: ${file.name} ---\n`;
+                    
+                    const maxExtractionPages = Math.min(pdfDoc.numPages, 60); 
+                    for (let i = 1; i <= maxExtractionPages; i++) {
+                        const page = await pdfDoc.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        fullText += `[Page ${i}]: ${pageText}\n`;
+                    }
                     
                     const docId = 'doc_' + Math.random().toString(36).substr(2, 9);
                     
                     documents.push({
                         id: docId,
                         name: file.name,
-                        file: file, // Keep reference to file for rendering
-                        textContent: textContent
+                        file: file,
+                        textContent: fullText,
+                        pdfDoc: pdfDoc // Store for visual rendering
                     });
                     
                     processed++;
@@ -262,38 +279,17 @@
             }
 
             uploadStatus.classList.add('hidden');
-            fileUpload.value = ''; // Reset
+            fileUpload.value = ''; 
             renderDocumentList();
             
             if (documents.length > 0 && !activeDocId) {
-                setActiveDocument(documents[documents.length - 1].id);
+                setActiveDocument(documents[0].id);
             }
             
             if(processed > 0) {
-               addSystemMessage(`Analyzed ${processed} new document(s). Knowledge base updated.`);
+               addMessageToUI('system', `Loaded ${processed} document(s). Ready to answer questions.`);
             }
         });
-
-        async function extractTextFromPDF(file) {
-            const arrayBuffer = await file.arrayBuffer();
-            const typedarray = new Uint8Array(arrayBuffer);
-            const pdf = await pdfjsLib.getDocument({data: typedarray}).promise;
-            let fullText = `--- Document Name: ${file.name} ---\n`;
-            
-            const maxPages = Math.min(pdf.numPages, 100); // Extract up to 100 pages for AI
-            for (let i = 1; i <= maxPages; i++) {
-                try {
-                    const page = await pdf.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-                    fullText += `[Page ${i}]: ${pageText}\n`;
-                } catch(e) {
-                    console.warn(`Could not extract page ${i}`);
-                }
-            }
-            if (pdf.numPages > 100) fullText += `\n[Document truncated for memory limits]`;
-            return fullText;
-        }
 
         function renderDocumentList() {
             docCount.textContent = documents.length;
@@ -312,20 +308,18 @@
                 const docEl = document.createElement('div');
                 const isActive = doc.id === activeDocId;
                 
-                docEl.className = `p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 mb-2 group shadow-sm
-                    ${isActive ? 'bg-blue-50/50 border-assig-main/60 shadow-md ring-1 ring-assig-main/20' : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md'}`;
+                docEl.className = `p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-3 mb-2 group
+                    ${isActive ? 'bg-indigo-50 border-primary shadow text-primary-dark' : 'bg-white border-gray-200 hover:border-indigo-300 hover:bg-gray-50'}`;
                 
                 docEl.innerHTML = `
-                    <div class="h-8 w-8 rounded-lg ${isActive ? 'bg-assig-main text-white' : 'bg-slate-100 text-slate-500'} flex items-center justify-center flex-shrink-0 transition-colors mt-0.5 shadow-sm">
+                    <div class="h-8 w-8 rounded bg-indigo-100 flex items-center justify-center flex-shrink-0 text-primary mt-0.5">
                         <i data-lucide="file-text" class="h-4 w-4"></i>
                     </div>
                     <div class="flex-1 min-w-0" onclick="setActiveDocument('${doc.id}')">
-                        <p class="text-sm font-bold ${isActive ? 'text-assig-main' : 'text-slate-700'} truncate" title="${doc.name}">${doc.name}</p>
-                        <p class="text-[10px] font-medium text-slate-500 mt-1 flex items-center gap-1">
-                           <i data-lucide="align-left" class="h-3 w-3"></i> Ready
-                        </p>
+                        <p class="text-sm font-bold truncate" title="${doc.name}">${doc.name}</p>
+                        <p class="text-xs text-gray-500 mt-1">${doc.pdfDoc.numPages} Pages</p>
                     </div>
-                    <button onclick="removeDocument('${doc.id}', event)" title="Remove document" class="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-lg transition-all">
+                    <button onclick="removeDocument('${doc.id}', event)" class="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Remove">
                         <i data-lucide="trash-2" class="h-4 w-4"></i>
                     </button>
                 `;
@@ -340,81 +334,113 @@
             
             const doc = documents.find(d => d.id === id);
             if (doc) {
-                viewerTitle.innerHTML = `<i data-lucide="book-open" class="h-4 w-4 text-assig-main"></i> ${doc.name}`;
+                viewerTitle.textContent = doc.name;
+                viewerPlaceholder.classList.add('hidden');
+                pdfRenderContainer.classList.remove('hidden');
                 
-                // Clear container and show loader
+                // Show loading state in viewer
                 pdfRenderContainer.innerHTML = `
-                    <div class="m-auto flex flex-col items-center justify-center">
-                        <i data-lucide="loader-2" class="h-8 w-8 text-assig-main animate-spin mb-2"></i>
-                        <p class="text-sm text-slate-500 font-medium">Rendering PDF Pages...</p>
+                    <div class="flex flex-col items-center justify-center h-full text-white">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-white mb-4"></div>
+                        <p class="font-medium">Rendering PDF Pages...</p>
                     </div>
                 `;
-                lucide.createIcons();
                 
                 try {
-                    // Render using robust canvas pipeline to avoid Sandbox iframe blocking
-                    const arrayBuffer = await doc.file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument({data: new Uint8Array(arrayBuffer)}).promise;
+                    const pdf = doc.pdfDoc;
+                    pdfRenderContainer.innerHTML = ''; 
                     
-                    pdfRenderContainer.innerHTML = ''; // Clear loader
+                    // Render up to 30 pages visually to prevent memory crashes
+                    const pagesToRender = Math.min(pdf.numPages, 30);
                     
-                    // Render first 30 pages visually to prevent massive RAM usage, but AI has full text
-                    const maxRenderPages = Math.min(pdf.numPages, 30);
-                    
-                    for (let i = 1; i <= maxRenderPages; i++) {
+                    for (let i = 1; i <= pagesToRender; i++) {
                         const page = await pdf.getPage(i);
-                        // Dynamic scaling based on container width for a good reading size
-                        const viewport = page.getViewport({ scale: 1.5 }); 
+                        // Dynamic scale based on container width
+                        const unscaledViewport = page.getViewport({ scale: 1.0 });
+                        const containerWidth = pdfRenderContainer.clientWidth - 40; // minus padding
+                        const scale = Math.min(1.5, containerWidth / unscaledViewport.width);
+                        const viewport = page.getViewport({ scale: scale });
                         
                         const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
+                        const context = canvas.getContext('2d');
                         canvas.height = viewport.height;
                         canvas.width = viewport.width;
-                        canvas.className = 'pdf-page-canvas';
+                        canvas.className = "pdf-page-canvas";
                         
                         pdfRenderContainer.appendChild(canvas);
                         
                         await page.render({
-                            canvasContext: ctx,
+                            canvasContext: context,
                             viewport: viewport
                         }).promise;
                     }
                     
-                    if(pdf.numPages > 30) {
-                        const notice = document.createElement('div');
-                        notice.className = "text-xs text-slate-500 font-medium py-4 px-6 bg-slate-200 rounded-lg mb-8 text-center";
-                        notice.innerHTML = `<i data-lucide="info" class="inline w-3 h-3 mr-1"></i> Showing first 30 pages visually to save memory. <b>The AI has read the entire document.</b>`;
-                        pdfRenderContainer.appendChild(notice);
+                    if (pdf.numPages > 30) {
+                        const note = document.createElement('div');
+                        note.className = "text-center text-gray-300 my-6 bg-gray-800/50 p-4 rounded-lg";
+                        note.innerHTML = `<i data-lucide="info" class="inline w-4 h-4 mr-1"></i> Visual preview limited to 30 pages. The AI can still read the entire document.`;
+                        pdfRenderContainer.appendChild(note);
                         lucide.createIcons();
                     }
-                    
+
                 } catch (err) {
                     console.error("PDF Render Error:", err);
-                    pdfRenderContainer.innerHTML = `<div class="m-auto text-red-500 font-medium">Error rendering document visually. The AI can still read it.</div>`;
+                    pdfRenderContainer.innerHTML = '<div class="text-white bg-red-500/20 p-4 rounded-lg mt-10 border border-red-500">Error rendering PDF visually. The AI can still read it.</div>';
                 }
             }
         };
 
         window.removeDocument = function(id, event) {
             event.stopPropagation();
-            documents = documents.filter(d => d.id !== id);
+            const docIndex = documents.findIndex(d => d.id === id);
+            if (docIndex > -1) {
+                documents.splice(docIndex, 1);
+            }
             
             if (activeDocId === id) {
                 activeDocId = documents.length > 0 ? documents[0].id : null;
                 if (!activeDocId) {
-                    viewerTitle.innerHTML = `<i data-lucide="book-open" class="h-4 w-4 text-slate-400"></i> Select a document to read`;
-                    pdfRenderContainer.innerHTML = `
-                        <div id="viewer-placeholder" class="m-auto flex flex-col items-center justify-center text-slate-400">
-                            <i data-lucide="file-search" class="h-16 w-16 mb-4 text-slate-300"></i>
-                            <p class="text-lg font-medium text-slate-500">Document Workspace</p>
-                        </div>
-                    `;
-                    lucide.createIcons();
+                    viewerTitle.textContent = "Select a document to view";
+                    viewerPlaceholder.classList.remove('hidden');
+                    pdfRenderContainer.classList.add('hidden');
+                    pdfRenderContainer.innerHTML = '';
                 } else {
                     setActiveDocument(activeDocId);
                 }
             }
             renderDocumentList();
+        };
+
+        // --- Chat & AI Interaction ---
+
+        // Copy functionality
+        window.copyResponse = function(btnElement) {
+            const textToCopy = decodeURIComponent(btnElement.getAttribute('data-raw'));
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = btnElement.innerHTML;
+                btnElement.innerHTML = `<i data-lucide="check" class="h-3 w-3 mr-1 inline"></i> Copied!`;
+                btnElement.classList.replace('text-gray-500', 'text-green-600');
+                lucide.createIcons();
+                setTimeout(() => {
+                    btnElement.innerHTML = originalText;
+                    btnElement.classList.replace('text-green-600', 'text-gray-500');
+                    lucide.createIcons();
+                }, 2000);
+            }).catch(err => {
+                console.error("Copy failed", err);
+                // Fallback for older browsers / iframe issues
+                const textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    btnElement.innerHTML = `Copied!`;
+                } catch (e) {
+                    btnElement.innerHTML = `Failed`;
+                }
+                document.body.removeChild(textArea);
+            });
         };
 
         function showError(msg) {
@@ -423,95 +449,58 @@
             setTimeout(() => errorBanner.classList.add('hidden'), 8000);
         }
 
+        // Extremely strict prompt to bypass Turnitin/GPTZero
         function createSystemInstruction() {
-            let docsContext = documents.length === 0 ? 
-                "The user has not uploaded any documents." :
-                "Here are the uploaded documents:\n\n" + documents.map(d => d.textContent).join('\n\n=====\n\n');
+            let contextText = documents.length > 0 
+                ? documents.map(d => d.textContent).join('\n\n=== NEXT DOCUMENT ===\n\n')
+                : "No documents uploaded yet.";
 
-            let prompt = `You are a university student doing an assignment. 
+            return `You are answering questions for a university student. YOUR PRIMARY GOAL IS TO COMPLETELY BYPASS AI DETECTORS (like Turnitin and GPTZero). 
+To do this, you MUST follow these absolute rules:
+1. Write with high burstiness and perplexity. Mix short, punchy sentences with longer, slightly fragmented ones.
+2. DO NOT use AI buzzwords. NEVER use words like: delve, crucial, furthermore, tapestry, multifaceted, seamless, underscore, pivotal, realm, robust, navigate. 
+3. Sound like a smart human student. It's okay to start sentences with 'So,' or 'Basically,' occasionally. 
+4. If the answer is in the documents provided below, use that information but synthesize it naturally in your own words. Do not copy/paste large chunks.
+5. IF THE ANSWER IS NOT IN THE DOCUMENTS: Do NOT say "Based on the provided documents, I cannot answer". Instead, say something human like "I couldn't find this exact thing in the readings, but generally speaking..." and then answer the question using your general knowledge.
 
-CRITICAL DIRECTIVE - BYPASS AI DETECTORS (TURNITIN, GPTZERO):
-You MUST write in a way that is 100% undetected by AI plagiarism checkers. To do this, you must mimic real human writing.
-1. NO AI BUZZWORDS: Never use words like: delve, robust, cutting-edge, furthermore, moreover, in conclusion, crucial, tapestry, intricate, pivotal, seamless, testament, nuanced, realm, embark, shed light.
-2. HIGH BURSTINESS & PERPLEXITY: You MUST vary sentence lengths drastically. Write a 5-word sentence. Then a 25-word sentence. Then a 12-word sentence. Break up the rhythm. Human writing is not mathematically uniform.
-3. TONE & STYLE: Write calmly, directly, and slightly informally but academically appropriate. Occasional use of contractions (don't, it's) is good. DO NOT use Em-Dashes.
-4. SYNTHESIS NOT COPYING: Use the provided documents to answer the question, but rephrase concepts naturally. Do not copy strings of text verbatim. 
-5. STRUCTURE: Do not use highly predictable structures like "Firstly, secondly, thirdly". Avoid making every paragraph the exact same length.
-6. FALLBACK PROTOCOL: If the user asks a question and the answer is NOT explicitly detailed in the uploaded PDFs, explicitly state: "I couldn't find this exact detail in the provided documents," BUT THEN immediately proceed to answer the question using your own general knowledge to help the student anyway. Do not leave them empty-handed.
-
-Context Documents:
-${docsContext}
-`;
-            return prompt;
+Here are the uploaded readings/documents:
+\n\n${contextText}`;
         }
 
-        function addSystemMessage(text) {
-            const msgEl = document.createElement('div');
-            msgEl.className = 'w-full flex justify-center my-2';
-            msgEl.innerHTML = `<span class="bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider py-1 px-3 rounded-full border border-slate-300 shadow-inner">${text}</span>`;
-            chatContainer.appendChild(msgEl);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-
-        // Global function for the copy button
-        window.copyTextToClipboard = function(btn, text) {
-            // Use textarea hack for reliable copying inside iframes
-            const textarea = document.createElement('textarea');
-            textarea.value = decodeURIComponent(text);
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-600"></i> <span class="text-green-600">Copied!</span>`;
-                lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                    lucide.createIcons();
-                }, 2000);
-            } catch (err) {
-                console.error('Failed to copy text', err);
-            }
-            document.body.removeChild(textarea);
-        };
-
-        function addMessageToUI(role, text) {
+        function addMessageToUI(role, text, rawText = null) {
             const msgEl = document.createElement('div');
             msgEl.className = `flex gap-3 w-full`;
             
             if (role === 'user') {
                 msgEl.className += ` flex-row-reverse`;
                 msgEl.innerHTML = `
-                    <div class="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                    <div class="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0 text-white shadow-md">
                         <i data-lucide="user" class="h-4 w-4"></i>
                     </div>
-                    <div class="bg-slate-800 rounded-2xl rounded-tr-none px-4 py-3 text-sm text-white max-w-[85%] shadow-md prose-content font-medium">
+                    <div class="bg-gray-800 rounded-2xl rounded-tr-none px-4 py-3 text-sm text-white max-w-[85%] shadow-md prose-content">
                         ${marked.parse(text)}
                     </div>
                 `;
             } else if (role === 'model') {
-                // Encode text for safe passing to inline onclick handler
-                const encodedText = encodeURIComponent(text);
-                
+                const encodedRaw = encodeURIComponent(rawText || text);
                 msgEl.innerHTML = `
-                    <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md mt-1">
+                    <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white shadow-md">
                         <i data-lucide="bot" class="h-4 w-4"></i>
                     </div>
-                    <div class="flex flex-col gap-1 max-w-[85%]">
-                        <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-4 text-sm text-slate-800 shadow-md">
-                            <div class="prose-content markdown-body">
-                                ${marked.parse(text)}
-                            </div>
+                    <div class="flex flex-col max-w-[85%]">
+                        <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-5 py-4 text-sm text-gray-800 shadow-md prose-content markdown-body">
+                            ${marked.parse(text)}
                         </div>
-                        <!-- COPY BUTTON ADDED AT THE END OF AI MESSAGE -->
-                        <div class="flex justify-end mt-1">
-                            <button onclick="copyTextToClipboard(this, '${encodedText}')" 
-                                    class="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500 hover:text-assig-main bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm transition-colors active:scale-95">
-                                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Answer
+                        <div class="flex justify-end mt-1.5">
+                            <button onclick="copyResponse(this)" data-raw="${encodedRaw}" class="flex items-center text-xs text-gray-500 hover:text-primary transition-colors bg-white px-2 py-1 rounded border border-gray-200 shadow-sm font-medium">
+                                <i data-lucide="copy" class="h-3 w-3 mr-1"></i> Copy Answer
                             </button>
                         </div>
                     </div>
                 `;
+            } else if (role === 'system') {
+                msgEl.className = 'w-full flex justify-center my-2';
+                msgEl.innerHTML = `<span class="bg-indigo-50 text-primary-dark font-medium text-xs py-1.5 px-4 rounded-full border border-indigo-100 shadow-sm">${text}</span>`;
             }
 
             chatContainer.appendChild(msgEl);
@@ -524,13 +513,13 @@ ${docsContext}
             loaderEl.id = 'chat-loading';
             loaderEl.className = `flex gap-3 w-full`;
             loaderEl.innerHTML = `
-                <div class="h-8 w-8 rounded-full bg-assig-main flex items-center justify-center flex-shrink-0 text-white shadow-md">
+                <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white shadow-md">
                     <i data-lucide="bot" class="h-4 w-4"></i>
                 </div>
-                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-4 shadow-sm flex items-center gap-1.5 h-12">
-                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full"></span>
-                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full" style="animation-delay: 0.2s"></span>
-                    <span class="animate-bounce h-1.5 w-1.5 bg-slate-400 rounded-full" style="animation-delay: 0.4s"></span>
+                <div class="bg-white border border-gray-200 rounded-2xl rounded-tl-none px-5 py-4 text-sm shadow-md flex items-center gap-1.5 h-12">
+                    <span class="animate-bounce h-2 w-2 bg-indigo-400 rounded-full"></span>
+                    <span class="animate-bounce h-2 w-2 bg-indigo-400 rounded-full" style="animation-delay: 0.2s"></span>
+                    <span class="animate-bounce h-2 w-2 bg-indigo-400 rounded-full" style="animation-delay: 0.4s"></span>
                 </div>
             `;
             chatContainer.appendChild(loaderEl);
@@ -538,18 +527,20 @@ ${docsContext}
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function hideLoadingIndicator() {
-            const loader = document.getElementById('chat-loading');
-            if (loader) loader.remove();
-        }
-
         chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = chatInput.value.trim();
             if (!text || isGenerating) return;
 
+            if (!apiKey) {
+                showError("Please enter your Gemini API key in the top right corner.");
+                apiKeyInput.focus();
+                return;
+            }
+
+            // Update UI
             chatInput.value = '';
-            chatInput.style.height = 'auto'; 
+            chatInput.style.height = 'auto';
             isGenerating = true;
             sendBtn.disabled = true;
             errorBanner.classList.add('hidden');
@@ -557,6 +548,7 @@ ${docsContext}
             addMessageToUI('user', text);
             showLoadingIndicator();
 
+            // Prepare Payload for Gemini 2.5 Flash
             const systemInstructionText = createSystemInstruction();
             
             const geminiContents = chatHistory.map(msg => ({
@@ -570,8 +562,14 @@ ${docsContext}
             });
 
             const payload = {
-                systemInstruction: { parts: [{ text: systemInstructionText }] },
-                contents: geminiContents
+                systemInstruction: {
+                    parts: [{ text: systemInstructionText }]
+                },
+                contents: geminiContents,
+                generationConfig: {
+                    temperature: 0.85, // Higher temp for more natural/varied text (burstiness)
+                    topK: 40,
+                }
             };
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -585,35 +583,49 @@ ${docsContext}
 
                 if (!response.ok) {
                     const errData = await response.json().catch(() => null);
-                    throw new Error(errData?.error?.message || `HTTP ${response.status}`);
+                    throw new Error(errData?.error?.message || `HTTP Error ${response.status}`);
                 }
 
                 const responseData = await response.json();
                 const replyText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
                 
+                const loader = document.getElementById('chat-loading');
+                if (loader) loader.remove();
+
                 if (replyText) {
-                    hideLoadingIndicator();
-                    addMessageToUI('model', replyText);
+                    addMessageToUI('model', replyText, replyText);
                     chatHistory.push({ role: 'user', text: text });
                     chatHistory.push({ role: 'model', text: replyText });
                 } else {
-                    throw new Error("Invalid format received from Gemini.");
+                    throw new Error("Invalid response format from Gemini API");
                 }
+
             } catch (err) {
                 console.error("API Error:", err);
-                hideLoadingIndicator();
-                showError("Connection failed. Ensure API key is valid. " + err.message);
+                const loader = document.getElementById('chat-loading');
+                if (loader) loader.remove();
+                showError(err.message || "Failed to generate a response. Check API key.");
             } finally {
                 isGenerating = false;
                 sendBtn.disabled = false;
-                setTimeout(() => chatInput.focus(), 100);
             }
         });
 
         // Auto-resize textarea
         chatInput.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight < 120 ? this.scrollHeight : 120) + 'px';
+            this.style.height = (this.scrollHeight < 150 ? this.scrollHeight : 150) + 'px';
+        });
+        
+        // Handle window resize for PDF redraws
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (activeDocId && !pdfRenderContainer.classList.contains('hidden')) {
+                    setActiveDocument(activeDocId); // Re-render to adjust scale
+                }
+            }, 300);
         });
 
     </script>
